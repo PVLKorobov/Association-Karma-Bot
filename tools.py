@@ -44,19 +44,22 @@ def getTextFromFile(filePath:str) -> str:
     with open(filePath, 'r', encoding='utf8') as textFile:
         return textFile.read()
 
-def addScore(username:str, filePath:str) -> None:
-    with open(filePath, 'r', encoding='utf8') as scoreFile:
+def addScore(username:str, scoreCount:int, chatId:int, scoreListPath:str) -> None:
+    with open(scoreListPath, 'r', encoding='utf8') as scoreFile:
         table = json.load(scoreFile)
         if username not in table:
-            table[username] = 1
+            table[str(chatId)][username] = scoreCount
         else:
-            table[username] += 1
-    with open(filePath, 'w', encoding='utf8') as scoreFile:
+            table[str(chatId)][username] += scoreCount
+    with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
         scoreFile.write(json.dumps(table))
 
-def initList(filePath:str) -> None:
-    with open(filePath, 'w', encoding='utf8') as scoreFile:
-        scoreFile.write(json.dumps({}))
+def initList(chatId:int, scoreListPath:str) -> None:
+    with open(scoreListPath, 'r', encoding='utf8') as scoreFile:
+        scoreDict = json.load(scoreFile)
+        scoreDict[str(chatId)] = {}
+    with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
+        scoreFile.write(json.dumps(scoreDict))
 
 def addActive(chat_id:int) -> None:
     with open('activeIn.json', 'r', encoding='utf8') as activeIds:
@@ -70,10 +73,22 @@ def isActive(chat_id:int) -> bool:
         return chat_id in json.load(activeIds)
 
 def hardReset(scoreListPath:str) -> None:
-    initList(scoreListPath)
+    with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
+        scoreFile.write(json.dumps({}))
     with open('activeIn.json', 'w', encoding='utf8') as activeIds:
         activeIds.write(json.dumps([]))
 
+def getIdList() -> list:
+    with open('activeIn.json', 'r', encoding='utf8') as activeIds:
+        return json.load(activeIds)
+    
+def chatReset(chatId:int, scoreListPath:str) -> None:
+    with open(scoreListPath, 'r', encoding='utf8') as scoreFile:
+        table = json.load(scoreFile)
+        table[str(chatId)] = {}
+    with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
+        scoreFile.write(json.dumps(table))
+
 
 if __name__ == '__main__':
-    hardReset()
+    hardReset('./scoreTable.json')
