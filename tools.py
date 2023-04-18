@@ -61,6 +61,10 @@ def initList(chatId:int, scoreListPath:str) -> None:
     with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
         scoreFile.write(json.dumps(scoreDict))
 
+def clearScoreCache():
+    with open('scoreCache.json', 'w', encoding='utf8') as scoreCache:
+        scoreCache.write(json.dumps({}))
+
 def addActive(chat_id:int) -> None:
     with open('activeIn.json', 'r', encoding='utf8') as activeIds:
         idList = json.load(activeIds)
@@ -88,6 +92,17 @@ def chatReset(chatId:int, scoreListPath:str) -> None:
         table[str(chatId)] = {}
     with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
         scoreFile.write(json.dumps(table))
+
+def silentSave(username:str, addedScore:int, chatId:int) -> None:
+    with open('scoreCache.json', 'w', encoding='utf8') as scoreCache:
+        cache = json.load(scoreCache)
+        if str(chatId) in cache:
+            if username in cache[chatId]:
+                cache[chatId][username] += addedScore
+            else:
+                cache[chatId][username] = addedScore
+        else:
+            cache[str(chatId)] = {username:addedScore}
 
 
 if __name__ == '__main__':
