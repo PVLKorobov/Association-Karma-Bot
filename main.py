@@ -2,7 +2,9 @@ from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 import asyncio
 from configparser import ConfigParser
-from tools import logger, initList, addScore, addActive, isActive, getTextFromFile, hardReset, chatReset, getIdList, clearScoreCache, silentSave
+from tools import (logger, initList, addScore, addActive, isActive, getTextFromFile, hardReset, 
+                   chatReset, getIdList, clearScoreCache, cacheSave, strToDict, parseCache, getScoreReply)
+
 
 async def isAdmin(userId:int, chatId:int) -> bool:
     adminsList = await bot.get_chat_administrators(chatId)
@@ -11,6 +13,14 @@ async def isAdmin(userId:int, chatId:int) -> bool:
             return True
     return False
 
+async def printCached(chatId:int) -> None:
+    timer = config.getint('default', 'cacheTime') * 60
+    asyncio.sleep(timer)
+    config.set('default', 'cacheStatus', 'False')
+    scoreList = parseCache(chatId, scoreNames)
+    await bot.send_message(chatId, text=f'Начисленные за последние {int(timer/60)} минут {scoreNames["low"]}ы\n{scoreList}')
+
+
 if __name__ == '__main__':
     config = ConfigParser()
     config.read('config.ini', encoding='utf8')
@@ -18,9 +28,10 @@ if __name__ == '__main__':
     log.reset_log()
     bot = AsyncTeleBot(config['default']['accessToken'])
     log.info(f'Bot startup with config: {config.items("default")}')
-    config = config['default']
     clearScoreCache()
     log.info('Cleaned score cache')
+    config.set('default', 'cacheStatus', 'False')
+    scoreNames = strToDict(config['default']['scoreNames'])
 
 
     @bot.message_handler(commands=['start'], chat_types=['supergroup', 'group'])
@@ -29,7 +40,7 @@ if __name__ == '__main__':
             if not isActive(message.chat.id):
                 replyText = getTextFromFile('./responses/init.txt')
                 addActive(message.chat.id)
-                initList(message.chat.id, config['scoreTableLocation'])
+                initList(message.chat.id, config['default']['scoreTableLocation'])
                 await bot.send_message(message.chat.id, replyText)
             else:
                 replyText = getTextFromFile('./responses/failInit.txt')
@@ -69,13 +80,13 @@ if __name__ == '__main__':
     async def askReset(callback):
         await bot.edit_message_reply_markup(chat_id=callback.message.chat.id, message_id=callback.message.message_id, reply_markup=None)
         if callback.data == 'y':
-            chatReset(callback.message.chat.id, config['scoreTableLocation'])
+            chatReset(callback.message.chat.id, config['default']['scoreTableLocation'])
             replyText = 'Записи о полученных баллах очищены'
             await bot.send_message(callback.message.chat.id, replyText)
 
     @bot.message_handler(commands=['hardreset'], chat_types=['private'])
     async def HReset(message):
-        if message.from_user.username == config['allowedUser']: # https://t.me/do_not_the_cat
+        if message.from_user.username == config['default']['allowedUser']: # https://t.me/do_not_the_cat
             markup = types.InlineKeyboardMarkup()
             y = types.InlineKeyboardButton(text='Да', callback_data='yes')
             n = types.InlineKeyboardButton(text='Нет', callback_data='no')
@@ -92,28 +103,32 @@ if __name__ == '__main__':
             idList = getIdList()
             for chatId in idList:
                 await bot.send_message(chatId, text='[adminstag] Бот был перезапущен. Для начала работы в этом чате используйте команду /start')
-            hardReset(config['scoreTableLocation'])
+            hardReset(config['default']['scoreTableLocation'])
             replyText = 'Бот полностью перезапущен'
             await bot.send_message(callback.message.chat.id, replyText)
 
     @bot.message_handler(commands=['cache'])
 
-    @bot.message_handler(regexp=config['triggerRegex'], func=lambda message: message.reply_to_message != None and isActive(message.chat.id), chat_types=['supergroup', 'group'])
+    @bot.message_handler(regexp=config['default']['triggerRegex'], func=lambda message: message.reply_to_message != None and isActive(message.chat.id), chat_types=['supergroup', 'group'])
     async def messageReaction(message):
         log.info(f'Regex trigger on {message.text}')
-        addedScore = config['addedScoreAmount']
+        addedScore = config['default']['addedScoreAmount']
         triggerName = message.from_user.username
         answerName = message.reply_to_message.from_user.username
         isBotAnswer = message.reply_to_message.from_user.is_bot
-        if triggerName != answerName and not isBotAnswer:
-            if config.getboolean('silentMode'):
-                addScore(answerName, addedScore, message.chat.id, config['scoreTableLocation'])
-                silentSave(answerName, addedScore, message.chat.id)
+        if True:#triggerName != answerName and not isBotAnswer:
+            if config.getboolean('default', 'silentMode'):
+                addScore(answerName, addedScore, message.chat.id, config['default']['scoreTableLocation'])
+                cacheSave(answerName, addedScore, message.chat.id)
+                if config.getboolean('default', 'cacheStatus'):
+                    printCached(message.chat.id)
+                    config.set('default', 'cacheStatus', 'True')
                 log.info(f"{addedScore} score given to {answerName} for {triggerName}'s approval")
             else:
-                addScore(answerName, addedScore, message.chat.id, config['scoreTableLocation'])
+                addScore(answerName, addedScore, message.chat.id, config['default']['scoreTableLocation'])
                 log.info(f"{addedScore} score given to {answerName} for {triggerName}'s approval")
-                await bot.reply_to(message.reply_to_message, f'@{answerName} получает {addedScore} баллов')
+                replyLine = getScoreReply(answerName, addedScore, scoreNames)
+                await bot.reply_to(message.reply_to_message, replyLine)
 
 
     asyncio.run(bot.polling())

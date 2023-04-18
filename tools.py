@@ -61,10 +61,6 @@ def initList(chatId:int, scoreListPath:str) -> None:
     with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
         scoreFile.write(json.dumps(scoreDict))
 
-def clearScoreCache():
-    with open('scoreCache.json', 'w', encoding='utf8') as scoreCache:
-        scoreCache.write(json.dumps({}))
-
 def addActive(chat_id:int) -> None:
     with open('activeIn.json', 'r', encoding='utf8') as activeIds:
         idList = json.load(activeIds)
@@ -93,7 +89,10 @@ def chatReset(chatId:int, scoreListPath:str) -> None:
     with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
         scoreFile.write(json.dumps(table))
 
-def silentSave(username:str, addedScore:int, chatId:int) -> None:
+def strToDict(input:str) -> dict:
+    return json.loads(input)
+
+def cacheSave(username:str, addedScore:int, chatId:int) -> None:
     with open('scoreCache.json', 'w', encoding='utf8') as scoreCache:
         cache = json.load(scoreCache)
         if str(chatId) in cache:
@@ -103,6 +102,36 @@ def silentSave(username:str, addedScore:int, chatId:int) -> None:
                 cache[chatId][username] = addedScore
         else:
             cache[str(chatId)] = {username:addedScore}
+
+def clearScoreCache():
+    with open('scoreCache.json', 'w', encoding='utf8') as scoreCache:
+        scoreCache.write(json.dumps({}))
+
+def parseCache(chatId:int, scoreNames:dict) -> str:
+    parsedLine = ''
+    with open('scoreCache.json', 'r', encoding='utf8') as scoreCache:
+        for username in scoreCache[str(chatId)]:
+            scoreName = ''
+            listedScore = scoreCache[str(chatId)][username]
+            if (listedScore%10 > 1 and listedScore%10 < 5) or listedScore%10 == 0:
+                scoreName = scoreNames['mid']
+            if listedScore%10 > 4:
+                scoreName = scoreNames['high']
+            else:
+                scoreName = scoreNames['low']
+            parsedLine += f'{username} - {listedScore} {scoreName}\n'
+    return parsedLine[:1]
+
+def getScoreReply(username:str, addedScore:int, scoreNames:dict) -> str:
+    scoreName = ''
+    if (addedScore%10 > 1 and addedScore%10 < 5) or addedScore%10 == 0:
+        scoreName = scoreNames['mid']
+    if addedScore%10 > 4:
+        scoreName = scoreNames['high']
+    else:
+        scoreName = scoreNames['low']
+    return f'@{username} получает {addedScore} {scoreName}'
+
 
 
 if __name__ == '__main__':
