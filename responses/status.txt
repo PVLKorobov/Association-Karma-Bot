@@ -1,0 +1,5 @@
+{botName} активен в чате {chatName}
+"Тихий" режим - {silentStatus}
+Задержка в "тихом" режиме в минутах - {silentTime}
+Количество начисляемых быллов - {addedScoreAmount}
+Наименование баллов - {lowName}, {midName}, {highName}
