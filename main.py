@@ -42,7 +42,7 @@ async def check_commands(bot:AsyncTeleBot) -> None:
         config.set('default', 'commandsinit', 'True')
         write_config(config)
     else:
-        log.info('Are set')
+        log.info('Bot commands are set')
 
 async def get_bot_name() -> str:
     user = await bot.get_me()
