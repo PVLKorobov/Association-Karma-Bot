@@ -3,3 +3,5 @@ venv
 *.log
 *.json
 myconf.ini
+build
+dist
