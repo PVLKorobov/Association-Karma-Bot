@@ -1,7 +1,9 @@
+from os.path import isfile
 from telebot.async_telebot import AsyncTeleBot
 from telebot import types
 import asyncio
 from configparser import ConfigParser
+import set_commands
 from tools import (logger, init_list, add_score, add_active, is_active, get_text_from_file, hard_reset, 
                    chat_reset, get_id_list, clear_score_cache, cache_save, str_to_dict, parse_cache, 
                    get_score_reply, get_score_name, get_named_score, parse_score_list)
@@ -17,6 +19,30 @@ def get_args(input:str) -> tuple|str:
         return args[0]
     else:
         return tuple(args)
+    
+def check_files(scoreTablePath:str) -> None:
+    activeListPath = './activeIn.json'
+
+    if isfile(scoreTablePath) or isfile(activeListPath):
+        log.info('Score table and active id list passed validation')
+    else:
+        log.warning('Score table or/and active id list are missing')
+        hard_reset(scoreTablePath)
+        log.warning('Score table and acive id list created')
+    
+async def check_commands(bot:AsyncTeleBot) -> None:
+    log.info('Checking bot commands')
+    if not config.getboolean('default', 'commandsinit'):
+        log.warning('Bot commands are not set')
+        await set_commands.set_private_scope(bot)
+        await set_commands.set_admin_group_scope(bot)
+        await set_commands.set_default_group_scope(bot)
+        log.warning('Bot commands were set')
+
+        config.set('default', 'commandsinit', 'True')
+        write_config(config)
+    else:
+        log.info('Are set')
 
 async def get_bot_name() -> str:
     user = await bot.get_me()
@@ -44,6 +70,8 @@ async def print_cached(chatId:int) -> None:
 
 
 if __name__ == '__main__':
+    print('Бот запущен. Действия бота описаны в activity_log. Возникшие ошибки будут видны здесь')
+    print('Чтобы отключить бота достаточно закрыть это окно')
     config = ConfigParser()
     config.read('config.ini', encoding='utf8')
     log = logger(config['default']['logFileLocation'])
@@ -55,6 +83,9 @@ if __name__ == '__main__':
     config.set('default', 'cacheawaits', 'False')
     write_config(config)
     scoreNames = str_to_dict(config['default']['scoreNames'])
+
+    asyncio.run(check_commands(bot))
+    check_files(config['default']['scoreTableLocation'])
 
 
     @bot.message_handler(commands=['start'], chat_types=['supergroup', 'group'])
@@ -241,7 +272,10 @@ if __name__ == '__main__':
         log.info('/listscore command run')
         if await is_admin(message.from_user.id, message.chat.id):
             replyText = parse_score_list(str(message.chat.id), config['default']['scoreTableLocation'], scoreNames)
-            await bot.send_message(message.chat.id, text=replyText)
+            if replyText == '':
+                await bot.send_message(message.chat.id, text='В этой группе ещё не было начислено ни одного балла')
+            else:
+                await bot.send_message(message.chat.id, text=replyText)
         else:
             await bot.reply_to(message, text='Извините, но вы не можете использовать эту команду')
 
@@ -314,7 +348,7 @@ if __name__ == '__main__':
         answerName = message.reply_to_message.from_user.username
         isBotAnswer = message.reply_to_message.from_user.is_bot
         log.info(f'Regex trigger on "{message.text}" from {triggerName} to {answerName}')
-        if True:#answerName != 'null' and triggerName != answerName and not isBotAnswer:
+        if answerName != 'null' and triggerName != answerName and not isBotAnswer:
             if config.getboolean('default', 'silentMode'):
                 add_score(answerName, addedScore, str(message.chat.id), config['default']['scoreTableLocation'])
                 cache_save(answerName, addedScore, str(message.chat.id))
