@@ -20,7 +20,8 @@ async def set_admin_group_scope(bot:AsyncTeleBot):
         types.BotCommand('/silent', 'Toggle silent mode'),
         types.BotCommand('/silenttimer', 'Set silent mode timer'),
         types.BotCommand('/setscore', 'Set added score amount'),
-        types.BotCommand('/addscore', 'Manually add score to a user')
+        types.BotCommand('/setcommands', 'Create bot commands menu')#,
+        # types.BotCommand('/addscore', 'Manually add score to a user')
     ], scope=types.BotCommandScopeAllChatAdministrators())
 
 async def set_default_group_scope(bot:AsyncTeleBot):

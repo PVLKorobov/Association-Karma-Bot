@@ -23,7 +23,7 @@ def get_args(input:str) -> tuple|str:
 def check_files(scoreTablePath:str) -> None:
     activeListPath = './activeIn.json'
 
-    if isfile(scoreTablePath) or isfile(activeListPath):
+    if isfile(scoreTablePath) and isfile(activeListPath):
         log.info('Score table and active id list passed validation')
     else:
         log.warning('Score table or/and active id list are missing')
@@ -52,12 +52,15 @@ async def get_chat_title(chatId:int) -> str:
     chat = await bot.get_chat(chatId)
     return chat.title
 
-async def is_admin(userId:int, chatId:int) -> bool:
+async def is_admin(userId:int, chatId:int, username:str=None) -> bool:
     adminsList = await bot.get_chat_administrators(chatId)
-    for admin in adminsList:
-        if userId == admin.user.id:
-            return True
-    return False
+    if username == 'GroupAnonymousBot':
+        return True
+    else:
+        for admin in adminsList:
+            if userId == admin.user.id:
+                return True
+        return False
 
 async def print_cached(chatId:int) -> None:
     timer = config.getfloat("default", "cacheTime") * 60
@@ -66,6 +69,7 @@ async def print_cached(chatId:int) -> None:
     config.set('default', 'cacheAwaits', 'False')
     write_config(config)
     scoreList = parse_cache(str(chatId), scoreNames)
+    clear_score_cache()
     await bot.send_message(chatId, text=f'Начисленные недавно {scoreNames["low"]}ы\n{scoreList}')
 
 
@@ -90,7 +94,7 @@ if __name__ == '__main__':
 
     @bot.message_handler(commands=['start'], chat_types=['supergroup', 'group'])
     async def start(message):
-        if await is_admin(message.from_user.id, message.chat.id):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
             log.info('/start group command run')
             if not is_active(message.chat.id):
                 replyText = get_text_from_file('./responses/init.txt')
@@ -114,7 +118,7 @@ if __name__ == '__main__':
     @bot.message_handler(commands=['help'], chat_types=['supergroup', 'group'])
     async def help(message):
         log.info('/help group command run')
-        if await is_admin(message.from_user.id, message.chat.id):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
             replyText = get_text_from_file('./responses/adminHelp.txt')
         else:
             replyText = get_text_from_file('./responses/help.txt')
@@ -128,7 +132,7 @@ if __name__ == '__main__':
 
     @bot.message_handler(commands=['reset'], chat_types=['supergroup', 'group'], func=lambda message: is_active(message.chat.id))
     async def reset(message):
-        if await is_admin(message.from_user.id, message.chat.id):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
             log.info('/reset command run')
             markup = types.InlineKeyboardMarkup()
             y = types.InlineKeyboardButton(text='Да', callback_data='y')
@@ -180,7 +184,7 @@ if __name__ == '__main__':
 
     @bot.message_handler(commands=['silent'], func=lambda message: is_active(message.chat.id))
     async def toggleCaching(message):
-        if await is_admin(message.from_user.id, message.chat.id):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
             log.info('/silent command run')
             if config.getboolean('default', 'silentmode'):
                 config.set('default', 'silentmode', 'False')
@@ -197,7 +201,7 @@ if __name__ == '__main__':
 
     @bot.message_handler(commands=['silenttimer'], func=lambda message: is_active(message.chat.id))
     async def cacheTimeSet(message):
-        if await is_admin(message.from_user.id, message.chat.id):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
             log.info('/silenttimer command run')
             args = get_args(message.text)
             if type(args) is str and args != '' and float(args) > 0:
@@ -237,7 +241,7 @@ if __name__ == '__main__':
 
     # @bot.message_handler(commands=['scorenames'], chat_types=['group', 'supergroup'], func=lambda message: is_active(message.chat.id))
     # async def setScoreNames(message):
-    #     if await is_admin(message.from_user.id, message.chat.id):
+    #     if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
     #         log.info('/scorenames command run')
     #         args = getArgs(message.text)
     #         if type(args) is tuple and len(args) == 3:
@@ -258,19 +262,23 @@ if __name__ == '__main__':
     @bot.message_handler(commands=['myscore'], chat_types=['group', 'supergroup'], func=lambda message: is_active(message.chat.id))
     async def myScore(message):
         log.info('/myscore command run')
-        username = message.from_user.username
-        score = get_named_score(username, str(message.chat.id), config['default']['scoreTableLocation'])
-        if score != -1:
-            scoreName = get_score_name(score, scoreNames)
-            await bot.reply_to(message, text=f'@{username}  --  {score} {scoreName}')
+        if not message.from_user.is_bot:
+            username = message.from_user.username
+            userId = message.from_user.id
+            score = get_named_score(str(userId), str(message.chat.id), config['default']['scoreTableLocation'])
+            if score != -1:
+                scoreName = get_score_name(score, scoreNames)
+                await bot.reply_to(message, text=f'@{username}  --  {score} {scoreName}')
+            else:
+                await bot.reply_to(message, text='Пока что вы не получили ни одного балла')
         else:
-            await bot.reply_to(message, text='Пока что вы не получили ни одного балла')
+            await bot.reply_to(message.chat.id, text='Вы не можете использовать эту команду')
 
 
     @bot.message_handler(commands=['listscore'], chat_types=['group', 'supergroup'], func=lambda message: is_active(message.chat.id))
     async def listScore(message):
         log.info('/listscore command run')
-        if await is_admin(message.from_user.id, message.chat.id):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
             replyText = parse_score_list(str(message.chat.id), config['default']['scoreTableLocation'], scoreNames)
             if replyText == '':
                 await bot.send_message(message.chat.id, text='В этой группе ещё не было начислено ни одного балла')
@@ -280,44 +288,44 @@ if __name__ == '__main__':
             await bot.reply_to(message, text='Извините, но вы не можете использовать эту команду')
 
 
-    @bot.message_handler(commands=['addscore'], chat_types=['group', 'supergroup'], func=lambda message: is_active(message.chat.id))
-    async def manualScore(message):
-        log.info('/addscore group command run')
-        if await is_admin(message.from_user.id, message.chat.id):
-            chatTitle = await get_chat_title(message.chat.id)
-            replyText = get_text_from_file('./responses/addScoreFromGroup.txt')
-            replyText = replyText.format(title=chatTitle, chatId=message.chat.id)
-            await bot.send_message(message.from_user.id, text=replyText, parse_mode='MarkdownV2')
-        else:
-            await bot.reply_to(message, text='Извините, но вы не можете использовать эту команду')
+    # @bot.message_handler(commands=['addscore'], chat_types=['group', 'supergroup'], func=lambda message: is_active(message.chat.id))
+    # async def manualScore(message):
+    #     log.info('/addscore group command run')
+    #     if await is_admin(message.from_user.id, message.chat.id):
+    #         chatTitle = await get_chat_title(message.chat.id)
+    #         replyText = get_text_from_file('./responses/addScoreFromGroup.txt')
+    #         replyText = replyText.format(title=chatTitle, chatId=message.chat.id)
+    #         await bot.send_message(message.from_user.id, text=replyText, parse_mode='MarkdownV2')
+    #     else:
+    #         await bot.reply_to(message, text='Извините, но вы не можете использовать эту команду')
 
-    @bot.message_handler(commands=['addscore'], chat_types=['private'])
-    async def handleScoreAdd(message):
-        log.info('/addscore private command run')
-        args = get_args(message.text)
-        if type(args) is tuple and len(args) == 3 and int(args[2]) > 0:
-            chatId = int(args[0])
-            chatTitle = await get_chat_title(chatId)
-            if is_active(chatId):
-                if await is_admin(message.from_user.id, chatId):
-                    if args[1][:1] == '@': username = args[1][1:]
-                    else: username = args[1]
-                    addedScore = int(args[2])
-                    add_score(username, addedScore, str(chatId), config['default']['scoreTableLocation'])
-                    log.info(f'{addedScore} score given to {username}')
-                    scoreName = get_score_name(addedScore, scoreNames)
-                    await bot.reply_to(message, text=f'{username} начислено {addedScore} {scoreName}')
-                else:
-                    await bot.reply_to(message, text=f'Извините, но вы не можете использовать эту команду, так как не являетесь администратором {chatTitle}')
-            else:
-                await bot.send_message(message.chat.id, text=f'Бот не активен в {chatTitle}. Добавьте бота в группу, если его там нет и используйте /start')
-        else:
-            if len(args) == 0:
-                log.info(f'Blank /addscore arguments {args}')
-                await bot.reply_to(message, text='Использование команды /addscore [id группы] [имя пользователя] [число баллов]\nНапример: /addscore -1362367688 @myUsername 15')
-            else:
-                log.warning(f'Wrong /addscore arguments {args}')
-                await bot.reply_to(message, text='Введены неверные значения')
+    # @bot.message_handler(commands=['addscore'], chat_types=['private'])
+    # async def handleScoreAdd(message):
+    #     log.info('/addscore private command run')
+    #     args = get_args(message.text)
+    #     if type(args) is tuple and len(args) == 3 and int(args[2]) > 0:
+    #         chatId = int(args[0])
+    #         chatTitle = await get_chat_title(chatId)
+    #         if is_active(chatId):
+    #             if await is_admin(message.from_user.id, chatId):
+    #                 if args[1][:1] == '@': username = args[1][1:]
+    #                 else: username = args[1]
+    #                 addedScore = int(args[2])
+    #                 add_score(username, userId, addedScore, str(chatId), config['default']['scoreTableLocation'])
+    #                 log.info(f'{addedScore} score given to {username}')
+    #                 scoreName = get_score_name(addedScore, scoreNames)
+    #                 await bot.reply_to(message, text=f'{username} начислено {addedScore} {scoreName}')
+    #             else:
+    #                 await bot.reply_to(message, text=f'Извините, но вы не можете использовать эту команду, так как не являетесь администратором {chatTitle}')
+    #         else:
+    #             await bot.send_message(message.chat.id, text=f'Бот не активен в {chatTitle}. Добавьте бота в группу, если его там нет и используйте /start')
+    #     else:
+    #         if len(args) == 0:
+    #             log.info(f'Blank /addscore arguments {args}')
+    #             await bot.reply_to(message, text='Использование команды /addscore [id группы] [имя пользователя] [число баллов]\nНапример: /addscore -1362367688 @myUsername 15')
+    #         else:
+    #             log.warning(f'Wrong /addscore arguments {args}')
+    #             await bot.reply_to(message, text='Введены неверные значения')
 
     @bot.message_handler(commands=['status'], chat_types=['supergroup', 'group'])
     async def getStatus(message):
@@ -340,17 +348,31 @@ if __name__ == '__main__':
         else:
             await bot.send_message(message.chat.id, text='Бот неактивен в этом чате. Попробуйте команду /start')
 
+    @bot.message_handler(commands=['setcommands'], chat_types=['supergroup', 'group'])
+    async def commandsSet(message):
+        if await is_admin(message.from_user.id, message.chat.id, message.from_user.username):
+            log.info('/setcommands command run')
+            log.warning('Setting bot commands')
+            await set_commands.set_private_scope(bot)
+            await set_commands.set_admin_group_scope(bot)
+            await set_commands.set_default_group_scope(bot)
+            log.warning('Bot commands were set')
+            await bot.reply_to(message, text='Меню команд бота перезаписано. **Изменения могут быть не видны сразу**')
+        else:
+            await bot.reply_to(message, text='Извините, но вы не можете использовать эту команду')
 
     @bot.message_handler(regexp=config['default']['triggerRegex'], func=lambda message: message.reply_to_message != None and is_active(message.chat.id), chat_types=['supergroup', 'group'])
     async def messageReaction(message):
         addedScore = config.getint('default', 'addedScoreAmount')
         triggerName = message.from_user.username
         answerName = message.reply_to_message.from_user.username
+        answerUserId = message.reply_to_message.from_user.id
         isBotAnswer = message.reply_to_message.from_user.is_bot
+        test_mode = config.getboolean('default', 'testmode')
         log.info(f'Regex trigger on "{message.text}" from {triggerName} to {answerName}')
-        if answerName != 'null' and triggerName != answerName and not isBotAnswer:
+        if test_mode or (answerName != 'null' and triggerName != answerName and not isBotAnswer):
             if config.getboolean('default', 'silentMode'):
-                add_score(answerName, addedScore, str(message.chat.id), config['default']['scoreTableLocation'])
+                add_score(answerName, str(answerUserId), addedScore, str(message.chat.id), config['default']['scoreTableLocation'])
                 cache_save(answerName, addedScore, str(message.chat.id))
                 if not config.getboolean('default', 'cacheawaits'):
                     config.set('default', 'cacheAwaits', 'True')
@@ -358,10 +380,12 @@ if __name__ == '__main__':
                     await print_cached(message.chat.id)
                 log.info(f"{addedScore} score given to {answerName} for {triggerName}'s approval")
             else:
-                add_score(answerName, addedScore, str(message.chat.id), config['default']['scoreTableLocation'])
+                add_score(answerName, str(answerUserId), addedScore, str(message.chat.id), config['default']['scoreTableLocation'])
                 log.info(f"{addedScore} score given to {answerName} for {triggerName}'s approval")
-                replyLine = get_score_reply(answerName, int(addedScore), scoreNames)
-                await bot.reply_to(message.reply_to_message, replyLine)
+                totalScore = get_named_score(str(answerUserId), str(message.chat.id), config['default']['scoreTableLocation'])
+                replyLine = get_text_from_file('./responses/scoreAdded.txt')
+                scoreName = get_score_name(addedScore, scoreNames)
+                await bot.reply_to(message.reply_to_message, replyLine.format(username=answerName, addedScore=addedScore, scoreName=scoreName, totalScore=totalScore))
 
 
     asyncio.run(bot.polling())

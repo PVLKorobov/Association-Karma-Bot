@@ -44,14 +44,14 @@ def get_text_from_file(filePath:str) -> str:
     with open(filePath, 'r', encoding='utf8') as textFile:
         return textFile.read()
 
-def add_score(username:str, scoreCount:int, chatId:str, scoreListPath:str) -> None:
+def add_score(username:str, userId:str, scoreCount:int, chatId:str, scoreListPath:str) -> None:
     with open(scoreListPath, 'r', encoding='utf8') as scoreFile:
         table = json.load(scoreFile)
-        if username not in table[chatId]:
-            table[chatId][username] = scoreCount
+        if userId not in table[chatId]:
+            table[chatId][userId] = {"username":username, "score":scoreCount}
         else:
-            currentScore = int(table[chatId][username])
-            table[chatId][username] = currentScore + scoreCount
+            currentScore = int(table[chatId][userId]["score"])
+            table[chatId][userId]["score"] = currentScore + scoreCount
     with open(scoreListPath, 'w', encoding='utf8') as scoreFile:
         scoreFile.write(json.dumps(table, indent=4))
 
@@ -65,7 +65,7 @@ def init_list(chatId:str, scoreListPath:str) -> None:
 def add_active(chat_id:int) -> None:
     with open('activeIn.json', 'r', encoding='utf8') as activeIds:
         idList = json.load(activeIds)
-        idList += [chat_id]
+        idList.append(chat_id)
     with open('activeIn.json', 'w', encoding='utf8') as activeIds:
         activeIds.write(json.dumps(idList))
 
@@ -129,15 +129,15 @@ def parse_cache(chatId:str, scoreNames:dict) -> str:
             parsedLine += f'@{username} - {listedScore} {scoreName}\n'
     return parsedLine[:-1]
 
-def get_score_reply(username:str, addedScore:int, scoreNames:dict) -> str:
+def get_score_reply(username:str, addedScore:int, scoreNames:dict, totalScore:int) -> str:
     scoreName = get_score_name(addedScore, scoreNames)
-    return f'@{username} получает {addedScore} {scoreName}'
+    return f'@{username} получает {addedScore} {scoreName}\nВсего накоплено: {totalScore}'
 
-def get_named_score(username:str, chatId:str, scoreListPath:str) -> int:
+def get_named_score(userId:str, chatId:str, scoreListPath:str) -> int:
     with open(scoreListPath, 'r', encoding='utf8') as scoreTable:
         scores = json.load(scoreTable)
-    if username in scores[chatId] and scores[chatId][username] > 0:
-        return scores[chatId][username]
+    if userId in scores[chatId] and scores[chatId][userId]["score"] > 0:
+        return scores[chatId][userId]["score"]
     else:
         return -1
     
@@ -145,8 +145,9 @@ def parse_score_list(chatId:str, scoreListPath:str, scoreNames:dict) -> str:
     with open(scoreListPath, 'r', encoding='utf8') as scoreTable:
         scores = json.load(scoreTable)
     res = ''
-    for username in scores[chatId]:
-        userScore = scores[chatId][username]
+    for userId in scores[chatId]:
+        userScore = scores[chatId][userId]["score"]
+        username = scores[chatId][userId]["username"]
         scoreName = get_score_name(userScore, scoreNames)
         res += f'@{username}  --  {userScore} {scoreName}\n'
     return res[:-1]

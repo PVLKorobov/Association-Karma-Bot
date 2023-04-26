@@ -1,0 +1,2 @@
+@{username} получает {addedScore} {scoreName}
+Всего накоплено: {totalScore}
