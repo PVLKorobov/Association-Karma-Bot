@@ -388,4 +388,4 @@ if __name__ == '__main__':
                 await bot.reply_to(message.reply_to_message, replyLine.format(username=answerName, addedScore=addedScore, scoreName=scoreName, totalScore=totalScore))
 
 
-    asyncio.run(bot.polling())
+    asyncio.run(bot.polling(True, False, 1))
