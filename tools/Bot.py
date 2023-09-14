@@ -3,7 +3,7 @@ from aiogram.utils.token import TokenValidationError
 
 import os, sys
 
-from tools import config_handler, bot_commands
+from tools import config_handler
 
 
 def restart_bot():

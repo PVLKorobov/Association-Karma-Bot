@@ -65,9 +65,9 @@ def write_data_file(data: dict) -> None:
         dataFile.write(json.dumps(data, indent=4, ensure_ascii=False, sort_keys=False))
 
 
-def add_user_score(username: str, userId: int, addedScore: int, tableName: str = 'listedUsers') -> None:
+def add_user_score(userId: int, addedScore: int, tableName: str = 'listedUsers', username: str = '') -> None:
     userId = str(userId)
-    if not userId in data[tableName]:
+    if (not userId in data[tableName]) and (len(username) > 0):
         data[tableName][userId] = {'username': username, 'score': addedScore}
     else:
         data[tableName][userId]['score'] += addedScore

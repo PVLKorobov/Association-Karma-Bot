@@ -18,7 +18,7 @@ async def command_help(message: Message) -> None:
 
 
 @router.message(Command(commands=['myscore']), ChatType(chatType=['group', 'supergroup']))
-async def command_help(message: Message) -> None:
+async def command_my_score(message: Message) -> None:
     userMention = message.from_user.mention_html()
     try:
         userScore = data_handler.get_user_score(message.from_user.id)

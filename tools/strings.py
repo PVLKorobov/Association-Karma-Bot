@@ -27,7 +27,7 @@ def get_param_state(paramValue: bool) -> str:
     
 
 def has_punctiation_marks(input: str) -> bool:
-    for symbol in input[1:]:
+    for symbol in input[input.find(' '):]:
         if symbol in punctuation:
             return True
     return False

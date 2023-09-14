@@ -114,6 +114,19 @@ async def command_set_regex(message: Message) -> None:
     try:
         argument = strings.get_command_argument(message.text, numeric=False)[0]
         config_handler.set_param('cacheTimeout', argument)
-        await message.reply(f'Задержка начисления баллов в тихом режиме в минутах теперь <b>{argument}</b>')
+        await message.reply(f'Шаблон поиска теперь <b>{argument}</b>')
     except Exception:
-        await message.reply('<b>Введено неверное значение!</b>\n<i>Пример использования команды</i>\n/silenttimer 1.5')
+        await message.reply('<b>Введено неверное значение!</b>\n<i>Пример использования команды</i>\n/setregex [Сс]пасибо|[Пп]ольза|[Пп]олезно|[Бб]лагодарю')
+
+
+@router.message(Command(commands=['addscore']), ChatType(chatType=['group', 'supergroup']), IsAdmin())
+async def add_score(message: Message) -> None:
+    try:
+        arguments = strings.get_command_argument(message.text, 2, numeric=False)
+        targetId = arguments[0]
+        addedScore = int(arguments[1])
+
+        data_handler.add_user_score(userId=targetId, addedScore=addedScore)
+
+    except:
+        await message.reply('<b>Введено неверное значение!</b>\n<i>Пример использования команды</i>\n/addscore 050531206934 10')

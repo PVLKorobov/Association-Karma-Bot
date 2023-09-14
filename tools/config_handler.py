@@ -4,8 +4,6 @@ import json
 
 from os.path import isfile
 
-from tools import bot_commands
-
 
 #global
 configPath = 'config.json'
