@@ -10,7 +10,7 @@ configPath = 'config.json'
 #
 
 
-async def create_config_file(new: bool = True) -> None:
+def create_config_file(new: bool = True) -> None:
     if new:
         TOKEN = input("Введите токен бота >")
     else:
