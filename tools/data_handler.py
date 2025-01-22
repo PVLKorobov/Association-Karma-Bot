@@ -74,6 +74,18 @@ def add_user_score(userId: int, addedScore: int, tableName: str = 'listedUsers',
     write_data_file(data)
 
 
+def remove_user_score(userId: int, removedScore: int, tableName: str = 'listedUsers', username: str = ''):
+    userId = str(userId)
+    if (not userId in data[tableName]) and (len(username) > 0):
+        data[tableName][userId] = {'username': username, 'score': 0}
+    else:
+        if (data[tableName][userId]['score'] < removedScore):
+            data[tableName][userId]['score'] = 0
+        else:
+            data[tableName][userId]['score'] -= removedScore
+    write_data_file(data)
+
+
 def get_user_score(userId: int) -> int:
     userId = str(userId)
     if userId in data['listedUsers']:

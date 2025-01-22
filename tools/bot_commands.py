@@ -23,8 +23,9 @@ async def set_bot_commands() -> None:
         types.BotCommand(command='/silenttimer', description='Установить задержку в тихом режиме'),
         types.BotCommand(command='/setscore', description='Установить сколько баллов начисляет бот'), 
         types.BotCommand(command='/setscorename', description='Установить название баллов'),
-        types.BotCommand(command='/addscore', description='Добавить баллы пользователю'),
-        types.BotCommand(command='/setscorename', description='Установить шаблон поиска')
+        types.BotCommand(command='/setregex', description='Установить шаблон поиска'),
+        types.BotCommand(command='/givescore', description='Добавить баллы'),
+        types.BotCommand(command='/takescore', description='Вычесть баллы')
     ]
     await botInstance.set_my_commands(groupAdminCommands, types.BotCommandScopeAllChatAdministrators())
 

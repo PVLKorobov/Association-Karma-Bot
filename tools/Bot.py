@@ -1,4 +1,5 @@
 from aiogram import Bot
+from aiogram.client.default import DefaultBotProperties
 from aiogram.utils.token import TokenValidationError
 
 import os, sys
@@ -16,7 +17,7 @@ def clear_terminal():
 
 while True:
     try:
-        botInstance = Bot(config_handler.get_param('accessToken'), parse_mode="HTML")
+        botInstance = Bot(config_handler.get_param('accessToken'), default=DefaultBotProperties(parse_mode="HTML"))
         break
     except TokenValidationError:
         print('Был введён недействительный токен.')

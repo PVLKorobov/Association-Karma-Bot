@@ -36,12 +36,12 @@ def has_punctiation_marks(input: str) -> bool:
 def get_command_argument(inputText: str, dividerCount: int = 1, numeric: bool = True) -> list:
     divider = ' '
     if inputText.count(divider) != dividerCount or has_punctiation_marks(inputText):
-        raise Exception
+        raise ValueError
     else:
         args = inputText.split(divider)[1:]
         if numeric:
             for arg in args:
                 if not arg.isnumeric():
-                    raise Exception
+                    raise ValueError
         return args
     

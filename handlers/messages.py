@@ -14,13 +14,14 @@ router = Router()
                 ChatType(chatType=['group', 'supergroup']),
                 ~F.reply_to_message.from_user.is_bot,
                 F.reply_to_message,
+                F.reply_to_message.content_type != 'forum_topic_created',
                 NotSelfReply()
                 )
 async def trigger_message_handler(message: Message) -> None:
     username = message.reply_to_message.from_user.full_name
     userId = message.reply_to_message.from_user.id
     addedScore = config_handler.get_param('addedScoreAmount')
-    data_handler.add_user_score(username, userId, addedScore)
+    data_handler.add_user_score(username=username, userId=userId, addedScore=addedScore)
 
     silentMode = data_handler.get_param('silentMode')
     cacheState = data_handler.get_param('cacheState')
