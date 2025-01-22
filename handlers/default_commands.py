@@ -30,5 +30,11 @@ async def command_my_score(message: Message) -> None:
 
 @router.message(Command(commands=['start']), ChatType(chatType='private'))
 async def command_start(message: Message) -> None:
-    responseText = data_handler.get_response_text('start').format(username=message.from_user.mention_html)
+    responseText = data_handler.get_response_text('start').format(username=message.from_user.mention_html())
+    await message.reply(responseText)
+
+
+@router.message(Command(commands=['help']), ChatType(chatType='private'))
+async def command_help(message: Message) -> None:
+    responseText = data_handler.get_response_text('helpPrivate')
     await message.reply(responseText)
