@@ -8,7 +8,7 @@ from tools import bot_commands
 
 from handlers import default_commands
 from handlers.group_monitor import group_commands, group_messages
-from handlers.private_group_registration import *
+from handlers.private_group_registration import group_commands as audit_group_commands
 
 
 async def main() -> None:
